@@ -1,0 +1,120 @@
+---
+title: "Application of Dimension Reduction Methods"
+date: "2024-02-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+#install.packages("Rtsne")
+#install.packages("umap")
+#install.packages("tictoc")
+library(Rtsne)
+library(umap)
+library(tictoc)
+library(graphics)
+train = read.csv("train.csv")  ### add your direction
+```
+
+```{r}
+train$label = as.factor(train$label)
+colors = rainbow(length(unique(train$label)))
+names(colors) = unique(train$label)
+dim(train)
+```
+
+# Principal Component Analysis (PCA)
+
+```{r}
+tic()
+pca = princomp(train[,-1])$scores[,1:2]
+plot(pca, t='n', main="Principal Component Analysis", "cex.main"=2, "cex.lab"=1.5)
+text(pca, labels=train$label, col=colors[train$label])
+toc()
+```
+
+# Multidimensional Scaling (MDS)
+
+```{r}
+tic()
+#calculate distance matrix
+d = dist(train[,-1])
+
+#perform multidimensional scaling
+mds = cmdscale(d, eig=TRUE, k=2)
+toc()
+
+#extract (x, y) coordinates of multidimensional scaling
+x = mds$points[,1]
+y = mds$points[,2]
+
+#create scatter plot
+plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2",
+     main="Multidimensional Scaling Results", type="n")
+
+#add row names of data frame as labels
+text(x, y, labels=train$label, col=colors[train$label])
+```
+
+# Uniform Manifold Approximation and Projection (UMAP)
+
+```{r}
+tic()
+umap = umap(train[,-1])
+
+toc()
+x = umap$layout[,1]
+y = umap$layout[,2]
+
+#create scatter plot
+plot(x, y, xlab="Coordinate 1", ylab="Coordinate 2",
+     main="Uniform Manifold Approximation and Projection", type="n")
+
+#add row names of data frame as labels
+text(x, y, labels=train$label, col=colors[train$label])
+```
+
+# t Stochastic Neighbor Embedding
+
+```{r}
+# using tsne
+set.seed(1) # for reproducibility
+tic()
+tsne = Rtsne(train[,-1], dims = 2, perplexity=40, initial_dims = 30,
+              verbose=TRUE, max_iter = 1000)
+toc()
+```
+
+```{r}
+# visualizing
+colors = rainbow(length(unique(train$label)))
+names(colors) = unique(train$label)
+plot(tsne$Y, t='n', main="tSNE", xlab="tSNE dimension 1", ylab="tSNE dimension 2", "cex.main"=2, "cex.lab"=1.5)
+text(tsne$Y, labels=train$label, col=colors[train$label])
+```
+
+## Let's compare different perplexity values
+
+```{r}
+tsne_plot = function(perpl=40,iterations=500,learning=200){
+  set.seed(1) # for reproducibility
+  tsne = Rtsne(train[,-1], dims = 2, perplexity=perpl, initial_dims = 30,
+                verbose=TRUE, max_iter=iterations, eta=learning)
+  plot(tsne$Y, t='n', main = print(paste0("perplexity = ",perpl, ", max_iter = ",iterations, ", learning rate = ",learning)), xlab="tSNE dimension 1", ylab="tSNE dimension 2", "cex.main"=1, "cex.lab"=1.5)
+  text(tsne$Y, labels=train$label, col=colors[train$label])
+}
+
+perplexity_values = c(2,5,30,50,100)
+sapply(perplexity_values,function(i){tsne_plot(perpl=i)})
+```
+
+## Let's take a look at how it was converging
+
+```{r}
+iteration_values = c(10,50,100,1000)
+sapply(iteration_values,function(i){tsne_plot(iterations=i)})
+```
+
