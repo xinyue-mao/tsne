@@ -1,0 +1,82 @@
+---
+title: "vst"
+date: "2024-02-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(DESeq2)
+```
+
+```{r}
+library("pasilla")
+pasCts <- system.file("extdata",
+                      "pasilla_gene_counts.tsv",
+                      package="pasilla", mustWork=TRUE)
+pasAnno <- system.file("extdata",
+                       "pasilla_sample_annotation.csv",
+                       package="pasilla", mustWork=TRUE)
+cts <- as.matrix(read.csv(pasCts,sep="\t",row.names="gene_id"))
+coldata <- read.csv(pasAnno, row.names=1)
+coldata <- coldata[,c("condition","type")]
+coldata$condition <- factor(coldata$condition)
+coldata$type <- factor(coldata$type)
+```
+
+```{r}
+head(cts,2)
+```
+```{r}
+coldata
+```
+
+```{r}
+rownames(coldata) <- sub("fb", "", rownames(coldata))
+cts <- cts[, rownames(coldata)]
+```
+
+```{r}
+library("DESeq2")
+dds <- DESeqDataSetFromMatrix(countData = cts,
+                              colData = coldata,
+                              design = ~ condition)
+dds
+```
+
+```{r}
+colData(dds)
+```
+```{r}
+smallestGroupSize <- 3
+keep <- rowSums(counts(dds) >= 10) >= smallestGroupSize
+dds <- dds[keep,]
+dds$condition <- factor(dds$condition, levels = c("untreated","treated"))
+dds$condition <- relevel(dds$condition, ref = "untreated")
+dds$condition <- droplevels(dds$condition)
+dds <- DESeq(dds)
+```
+
+
+```{r}
+# this gives log2(n + 1)
+ntd <- normTransform(dds)
+library("vsn")
+meanSdPlot(assay(ntd))
+```
+
+
+```{r}
+vsd <- vst(dds, blind=FALSE)
+head(assay(vsd), 3)
+meanSdPlot(assay(vsd))
+```
+
+```{r}
+rld <- rlog(dds, blind=FALSE)
+meanSdPlot(assay(rld))
+```
+
