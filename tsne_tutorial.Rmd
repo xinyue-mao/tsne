@@ -17,6 +17,17 @@ library(umap)
 library(tictoc)
 library(graphics)
 train = read.csv("train.csv")  ### add your direction
+
+## Alternatively, see the following link to load the whole data
+## https://search.r-project.org/CRAN/refmans/dslabs/html/read_mnist.html
+#install.packages("dslabs")
+# read_mnist(
+#   path = NULL,
+#   download = FALSE,
+#   destdir = tempdir(),
+#   url = "https://www2.harvardx.harvard.edu/courses/IDS_08_v2_03/",
+#   keep.files = TRUE
+# )
 ```
 
 ```{r}
@@ -81,6 +92,8 @@ text(x, y, labels=train$label, col=colors[train$label])
 
 ```{r}
 # using tsne
+## see the following link for tuning parameter guideline
+## https://opentsne.readthedocs.io/en/latest/parameters.html 
 set.seed(1) # for reproducibility
 tic()
 tsne = Rtsne(train[,-1], dims = 2, perplexity=40, initial_dims = 30,
